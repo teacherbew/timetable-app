@@ -1,5 +1,0 @@
-[
-  "tests/test_timetable.py::test_get_timetable_structure",
-  "tests/test_timetable.py::test_login_and_access",
-  "tests/test_timetable.py::test_upload_csv_unauthorized"
-]

@@ -1,4 +1,0 @@
-day_of_week,start_time,end_time,teacher_id,subject_id,room_id
-Monday,08:30:00,09:30:00,1,101,201
-Monday,09:30:00,10:30:00,2,102,202
-Tuesday,08:30:00,09:30:00,1,101,201

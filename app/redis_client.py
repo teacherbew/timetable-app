@@ -1,4 +1,5 @@
 import os
+
 import redis
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
@@ -9,5 +10,5 @@ redis_client = redis.Redis(
     port=REDIS_PORT,
     db=0,
     decode_responses=True,
-    socket_timeout=1.0
+    socket_timeout=1.0,
 )

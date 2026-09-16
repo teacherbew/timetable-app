@@ -1,36 +1,30 @@
 import os
-from pathlib import Path
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
-# 1. โหลดไฟล์ .env โดยระบุตำแหน่ง Absolute Path ให้แม่นยำ
-base_dir = Path(__file__).resolve().parent.parent
-load_dotenv(base_dir / ".env")
+# Make sure "app" is importable, and load the local .env for standalone use
+# (e.g. `alembic upgrade head` run outside of docker-compose).
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from app.database import Base, DATABASE_URL  # noqa: E402
+import app.models  # noqa: E402,F401  (ensures models are registered on Base.metadata)
 
 config = context.config
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 if config.config_file_name:
     fileConfig(config.config_file_name)
-
-# 2. ดึง DATABASE_URL หากไม่พบให้ใช้ Connection String สำรองของ Docker
-database_url = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:password@db:5432/timetable_db"
-)
-config.set_main_option("sqlalchemy.url", database_url)
-
-# 3. นำเข้า Base และ Models
-from app.database import Base
-import app.models
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -38,24 +32,18 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
-
+        context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 
