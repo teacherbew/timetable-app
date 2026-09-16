@@ -12,7 +12,7 @@ def create_admin():
     db = SessionLocal()
     try:
         # สร้าง Hash รหัสผ่านใหม่
-        default_password = "AdminSecretPassword123!"
+        default_password = "45054508"
         hashed_pwd = get_password_hash(default_password)
         
         # ตรวจสอบว่ามี admin ในระบบหรือยัง
