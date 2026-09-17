@@ -54,6 +54,23 @@ class RoomResponse(RoomBase):
         from_attributes = True
 
 
+# --- ClassGroup Schemas (ระดับชั้น/ห้องเรียนนักเรียน) ---
+class ClassGroupBase(BaseModel):
+    name: str  # เช่น "ม.1/1"
+    level: str  # เช่น "ม.1"
+
+
+class ClassGroupCreate(ClassGroupBase):
+    pass
+
+
+class ClassGroupResponse(ClassGroupBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
 # --- TimetableSlot Schemas ---
 class TimetableSlotBase(BaseModel):
     day: str
@@ -61,6 +78,7 @@ class TimetableSlotBase(BaseModel):
     teacher_id: int
     subject_id: int
     room_id: int
+    class_group_id: int
 
 
 class TimetableSlotCreate(TimetableSlotBase):
@@ -74,6 +92,7 @@ class TimetableSlotResponse(BaseModel):
     teacher: Optional[TeacherResponse] = None
     subject: Optional[SubjectResponse] = None
     room: Optional[RoomResponse] = None
+    class_group: Optional[ClassGroupResponse] = None
 
     class Config:
         from_attributes = True

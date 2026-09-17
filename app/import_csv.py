@@ -1,7 +1,7 @@
 import csv
 
 from app.database import SessionLocal
-from app.models import Room, Subject, Teacher, TimetableSlot
+from app.models import ClassGroup, Room, Subject, Teacher, TimetableSlot
 
 
 def seed_dependencies(db):
@@ -25,6 +25,12 @@ def seed_dependencies(db):
             Room(id=2, name="Room 202", capacity=40),
         ])
 
+    if db.query(ClassGroup).count() == 0:
+        db.add_all([
+            ClassGroup(id=1, name="ม.1/1", level="ม.1"),
+            ClassGroup(id=2, name="ม.1/2", level="ม.1"),
+        ])
+
     db.commit()
 
 
@@ -42,6 +48,7 @@ def import_csv_data(csv_path: str = "timetable.csv"):
                     teacher_id=int(row["teacher_id"]),
                     subject_id=int(row["subject_id"]),
                     room_id=int(row["room_id"]),
+                    class_group_id=int(row["class_group_id"]),
                 )
                 for row in reader
             ]
