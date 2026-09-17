@@ -7,8 +7,9 @@ from app.database import Base
 class Teacher(Base):
     __tablename__ = "teachers"
     id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True, nullable=True)  # รหัสครูของโรงเรียน เช่น "111"
     name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=True)
 
 
 class Subject(Base):
@@ -21,8 +22,9 @@ class Subject(Base):
 class Room(Base):
     __tablename__ = "rooms"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    capacity = Column(Integer, nullable=False)
+    code = Column(String, unique=True, index=True, nullable=True)  # เลขห้องของโรงเรียน เช่น "1108"
+    name = Column(String, nullable=True)  # ชื่อเรียกห้อง เช่น "คอม 1" (ไม่บังคับ)
+    capacity = Column(Integer, nullable=True)
 
 
 class User(Base):

@@ -71,8 +71,9 @@ def bulk_upload_csv(db: Session, model, create_schema, file: UploadFile, label: 
     line_num = 1
     for row in reader:
         line_num += 1
+        clean_row = {k: (v if v not in (None, "") else None) for k, v in row.items()}
         try:
-            validated = create_schema(**row)
+            validated = create_schema(**clean_row)
         except ValidationError as e:
             raise HTTPException(
                 status_code=400,

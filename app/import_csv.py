@@ -7,9 +7,9 @@ from app.models import ClassGroup, Room, Subject, Teacher, TimetableSlot
 def seed_dependencies(db):
     if db.query(Teacher).count() == 0:
         db.add_all([
-            Teacher(id=1, name="Dr. Smith", email="smith@school.com"),
-            Teacher(id=2, name="Prof. Johnson", email="johnson@school.com"),
-            Teacher(id=3, name="Ajarn Somchai", email="somchai@school.com"),
+            Teacher(id=1, code="T001", name="Dr. Smith", email="smith@school.com"),
+            Teacher(id=2, code="T002", name="Prof. Johnson", email="johnson@school.com"),
+            Teacher(id=3, code="T003", name="Ajarn Somchai", email="somchai@school.com"),
         ])
 
     if db.query(Subject).count() == 0:
@@ -21,8 +21,8 @@ def seed_dependencies(db):
 
     if db.query(Room).count() == 0:
         db.add_all([
-            Room(id=1, name="Lab 101", capacity=30),
-            Room(id=2, name="Room 202", capacity=40),
+            Room(id=1, code="R101", name="Lab 101", capacity=30),
+            Room(id=2, code="R202", name="Room 202", capacity=40),
         ])
 
     if db.query(ClassGroup).count() == 0:

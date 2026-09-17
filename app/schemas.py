@@ -5,8 +5,9 @@ from pydantic import BaseModel
 
 # --- Teacher Schemas ---
 class TeacherBase(BaseModel):
+    code: str  # รหัสครูของโรงเรียน
     name: str
-    email: str
+    email: Optional[str] = None
 
 
 class TeacherCreate(TeacherBase):
@@ -39,8 +40,9 @@ class SubjectResponse(SubjectBase):
 
 # --- Room Schemas ---
 class RoomBase(BaseModel):
-    name: str
-    capacity: int
+    code: str  # เลขห้องของโรงเรียน
+    name: Optional[str] = None
+    capacity: Optional[int] = None
 
 
 class RoomCreate(RoomBase):
