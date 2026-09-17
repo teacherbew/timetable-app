@@ -44,6 +44,21 @@ class ClassGroup(Base):
     level = Column(String, nullable=False)  # เช่น "ม.1"
 
 
+class Assignment(Base):
+    """ภาระงานสอน: ครูคนนี้สอนวิชานี้ให้ระดับชั้นนี้ สัปดาห์ละกี่คาบ — นี่คือ 'รายการงานที่ต้องจัด'
+    ที่การ์ดในหน้าลากวางตารางสอนดึงมาแสดง ส่วนคาบที่ลากไปวางแล้วจะกลายเป็นแถวใน TimetableSlot จริง"""
+    __tablename__ = "assignments"
+    id = Column(Integer, primary_key=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    class_group_id = Column(Integer, ForeignKey("class_groups.id"), nullable=False)
+    periods_per_week = Column(Integer, nullable=False)
+
+    teacher = relationship("Teacher")
+    subject = relationship("Subject")
+    class_group = relationship("ClassGroup")
+
+
 class TimetableSlot(Base):
     __tablename__ = "timetable_slots"
     id = Column(Integer, primary_key=True, index=True)

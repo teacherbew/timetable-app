@@ -22,6 +22,8 @@ from app.database import engine, get_db
 from app.rate_limiter import rate_limit
 from app.redis_client import redis_client
 from app.schemas import (
+    AssignmentCreate,
+    AssignmentResponse,
     ClassGroupCreate,
     ClassGroupResponse,
     RoomCreate,
@@ -126,6 +128,127 @@ _register_master_data_routes("teachers", "Teachers", models.Teacher, TeacherCrea
 _register_master_data_routes("subjects", "Subjects", models.Subject, SubjectCreate, SubjectResponse, "วิชา")
 _register_master_data_routes("rooms", "Rooms", models.Room, RoomCreate, RoomResponse, "ห้องเรียน")
 _register_master_data_routes("class-groups", "ClassGroups", models.ClassGroup, ClassGroupCreate, ClassGroupResponse, "ระดับชั้น")
+
+
+# ----------------------------------------------------
+# ASSIGNMENTS (ภาระงานสอน) — the pool of "cards" the drag-and-drop UI draws from
+# ----------------------------------------------------
+
+@app.get("/assignments", tags=["Assignments"], response_model=list[AssignmentResponse])
+def list_assignments(
+    class_group_id: Optional[int] = Query(None),
+    teacher_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Assignment).options(
+        joinedload(models.Assignment.teacher),
+        joinedload(models.Assignment.subject),
+        joinedload(models.Assignment.class_group),
+    )
+    if class_group_id:
+        query = query.filter(models.Assignment.class_group_id == class_group_id)
+    if teacher_id:
+        query = query.filter(models.Assignment.teacher_id == teacher_id)
+    assignments = query.order_by(models.Assignment.id).all()
+
+    results = []
+    for a in assignments:
+        scheduled_count = db.query(models.TimetableSlot).filter(
+            models.TimetableSlot.teacher_id == a.teacher_id,
+            models.TimetableSlot.subject_id == a.subject_id,
+            models.TimetableSlot.class_group_id == a.class_group_id,
+        ).count()
+        resp = AssignmentResponse.model_validate(a)
+        resp.scheduled_count = scheduled_count
+        results.append(resp)
+    return results
+
+
+@app.post("/assignments", tags=["Assignments"], response_model=AssignmentResponse)
+def create_assignment(
+    item: AssignmentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["admin", "teacher"])),
+):
+    obj = crud_helpers.create_one(db, models.Assignment, item.model_dump())
+    resp = AssignmentResponse.model_validate(obj)
+    resp.scheduled_count = 0
+    return resp
+
+
+@app.delete("/assignments/{item_id}", tags=["Assignments"])
+def delete_assignment(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["admin", "teacher"])),
+):
+    return crud_helpers.delete_one(db, models.Assignment, item_id, "ภาระงานสอน")
+
+
+@app.post("/assignments/upload-csv", tags=["Assignments"], dependencies=[Depends(rate_limit)])
+def upload_assignments_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["admin", "teacher"])),
+):
+    """CSV columns: teacher_code, subject_code, class_group_name, periods_per_week.
+    Unlike the other bulk-upload endpoints, this one does NOT abort the whole batch
+    on a bad row — it resolves each row's human-readable codes to internal IDs and
+    skips (with a reason) any row it can't resolve, since real teaching-load exports
+    often have a few inconsistent rows mixed into otherwise-good data."""
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="กรุณาอัปโหลดไฟล์ .csv เท่านั้น")
+
+    contents = file.file.read().decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(contents))
+
+    teachers_by_code = {t.code: t.id for t in db.query(models.Teacher).filter(models.Teacher.code.isnot(None)).all()}
+    subjects_by_code = {s.code: s.id for s in db.query(models.Subject).all()}
+    class_groups_by_name = {c.name: c.id for c in db.query(models.ClassGroup).all()}
+
+    created = 0
+    skipped = []
+    line_num = 1
+    for row in reader:
+        line_num += 1
+        tcode = (row.get("teacher_code") or "").strip()
+        scode = (row.get("subject_code") or "").strip()
+        cgname = (row.get("class_group_name") or "").strip()
+        periods_raw = (row.get("periods_per_week") or "").strip()
+
+        teacher_id = teachers_by_code.get(tcode)
+        subject_id = subjects_by_code.get(scode)
+        class_group_id = class_groups_by_name.get(cgname)
+
+        reasons = []
+        if not teacher_id:
+            reasons.append(f"ไม่พบรหัสครู '{tcode}'")
+        if not subject_id:
+            reasons.append(f"ไม่พบรหัสวิชา '{scode}'")
+        if not class_group_id:
+            reasons.append(f"ไม่พบระดับชั้น '{cgname}'")
+        try:
+            periods = int(periods_raw)
+        except ValueError:
+            periods = None
+            reasons.append(f"จำนวนคาบ/สัปดาห์ไม่ถูกต้อง '{periods_raw}'")
+
+        if reasons:
+            skipped.append({"line": line_num, "reason": "; ".join(reasons)})
+            continue
+
+        db.add(models.Assignment(
+            teacher_id=teacher_id, subject_id=subject_id,
+            class_group_id=class_group_id, periods_per_week=periods,
+        ))
+        created += 1
+
+    db.commit()
+    return {
+        "message": f"นำเข้าภาระงานสอนสำเร็จ {created} รายการ (ข้าม {len(skipped)} รายการที่หาข้อมูลอ้างอิงไม่เจอ)",
+        "created": created,
+        "skipped": skipped,
+    }
 
 
 # ----------------------------------------------------

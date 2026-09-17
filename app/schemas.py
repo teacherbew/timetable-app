@@ -79,6 +79,30 @@ class ClassGroupResponse(ClassGroupBase):
         from_attributes = True
 
 
+# --- Assignment Schemas (ภาระงานสอน — ใช้เป็นการ์ดลากวางในหน้าจัดตารางสอน) ---
+class AssignmentBase(BaseModel):
+    teacher_id: int
+    subject_id: int
+    class_group_id: int
+    periods_per_week: int
+
+
+class AssignmentCreate(AssignmentBase):
+    pass
+
+
+class AssignmentResponse(BaseModel):
+    id: int
+    periods_per_week: int
+    scheduled_count: int = 0
+    teacher: Optional[TeacherResponse] = None
+    subject: Optional[SubjectResponse] = None
+    class_group: Optional[ClassGroupResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
 # --- TimetableSlot Schemas ---
 class TimetableSlotBase(BaseModel):
     day: str
