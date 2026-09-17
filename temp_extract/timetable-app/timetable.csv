@@ -1,0 +1,6 @@
+day,period,teacher_id,subject_id,room_id,class_group_id
+Monday,1,1,1,1,1
+Monday,2,1,2,1,1
+Tuesday,1,2,1,2,1
+Tuesday,2,2,3,2,2
+Wednesday,1,3,2,1,2
