@@ -176,6 +176,24 @@ def create_assignment(
     return resp
 
 
+@app.put("/assignments/{item_id}", tags=["Assignments"], response_model=AssignmentResponse)
+def update_assignment(
+    item_id: int,
+    item: AssignmentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["admin", "teacher"])),
+):
+    obj = crud_helpers.update_one(db, models.Assignment, item_id, item.model_dump(), "ภาระงานสอน")
+    scheduled_count = db.query(models.TimetableSlot).filter(
+        models.TimetableSlot.teacher_id == obj.teacher_id,
+        models.TimetableSlot.subject_id == obj.subject_id,
+        models.TimetableSlot.class_group_id == obj.class_group_id,
+    ).count()
+    resp = AssignmentResponse.model_validate(obj)
+    resp.scheduled_count = scheduled_count
+    return resp
+
+
 @app.delete("/assignments/{item_id}", tags=["Assignments"])
 def delete_assignment(
     item_id: int,
