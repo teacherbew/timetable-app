@@ -417,9 +417,9 @@ def get_timetable(
                 "id": s.id,
                 "day": s.day,
                 "period": s.period,
-                "teacher": {"id": s.teacher.id, "name": s.teacher.name, "email": s.teacher.email} if s.teacher else None,
+                "teacher": {"id": s.teacher.id, "code": s.teacher.code, "name": s.teacher.name, "email": s.teacher.email} if s.teacher else None,
                 "subject": {"id": s.subject.id, "code": s.subject.code, "name": s.subject.name} if s.subject else None,
-                "room": {"id": s.room.id, "name": s.room.name, "capacity": s.room.capacity} if s.room else None,
+                "room": {"id": s.room.id, "code": s.room.code, "name": s.room.name, "capacity": s.room.capacity} if s.room else None,
                 "class_group": {"id": s.class_group.id, "name": s.class_group.name, "level": s.class_group.level} if s.class_group else None,
             }
             for s in slots
