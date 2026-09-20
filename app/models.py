@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -76,3 +76,9 @@ class TimetableSlot(Base):
     subject = relationship("Subject")
     room = relationship("Room")
     class_group = relationship("ClassGroup")
+
+    __table_args__ = (
+        UniqueConstraint("day", "period", "teacher_id", name="uq_slot_day_period_teacher"),
+        UniqueConstraint("day", "period", "room_id", name="uq_slot_day_period_room"),
+        UniqueConstraint("day", "period", "class_group_id", name="uq_slot_day_period_class_group"),
+    )

@@ -151,15 +151,25 @@ def list_assignments(
         query = query.filter(models.Assignment.teacher_id == teacher_id)
     assignments = query.order_by(models.Assignment.id).all()
 
+    # One query for ALL scheduled-counts instead of one query per assignment
+    # (that N+1 pattern was the real cause of the ~10s load time with 900+ rows).
+    from sqlalchemy import func
+    count_rows = db.query(
+        models.TimetableSlot.teacher_id,
+        models.TimetableSlot.subject_id,
+        models.TimetableSlot.class_group_id,
+        func.count(models.TimetableSlot.id),
+    ).group_by(
+        models.TimetableSlot.teacher_id,
+        models.TimetableSlot.subject_id,
+        models.TimetableSlot.class_group_id,
+    ).all()
+    count_map = {(t, s, c): n for t, s, c, n in count_rows}
+
     results = []
     for a in assignments:
-        scheduled_count = db.query(models.TimetableSlot).filter(
-            models.TimetableSlot.teacher_id == a.teacher_id,
-            models.TimetableSlot.subject_id == a.subject_id,
-            models.TimetableSlot.class_group_id == a.class_group_id,
-        ).count()
         resp = AssignmentResponse.model_validate(a)
-        resp.scheduled_count = scheduled_count
+        resp.scheduled_count = count_map.get((a.teacher_id, a.subject_id, a.class_group_id), 0)
         results.append(resp)
     return results
 
