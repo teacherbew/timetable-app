@@ -320,38 +320,35 @@ def _clean_filters(
 
 
 def _check_conflicts(db: Session, day: str, period: int, teacher_id: int, room_id: int, class_group_id: int):
-    teacher_busy = db.query(models.TimetableSlot).filter(
+    # One query instead of three: fetch any slot at this day+period that
+    # matches teacher, room, OR class_group, then figure out which one
+    # conflicted in Python — same friendly error messages, 1 round trip.
+    candidates = db.query(models.TimetableSlot).filter(
         models.TimetableSlot.day == day,
         models.TimetableSlot.period == period,
-        models.TimetableSlot.teacher_id == teacher_id,
-    ).first()
-    if teacher_busy:
-        raise HTTPException(
-            status_code=400,
-            detail=f"ครู ID {teacher_id} มีสอนในวัน {day} คาบที่ {period} อยู่แล้ว",
-        )
+        (models.TimetableSlot.teacher_id == teacher_id)
+        | (models.TimetableSlot.room_id == room_id)
+        | (models.TimetableSlot.class_group_id == class_group_id),
+    ).all()
 
-    room_busy = db.query(models.TimetableSlot).filter(
-        models.TimetableSlot.day == day,
-        models.TimetableSlot.period == period,
-        models.TimetableSlot.room_id == room_id,
-    ).first()
-    if room_busy:
-        raise HTTPException(
-            status_code=400,
-            detail=f"ห้องเรียน ID {room_id} ถูกใช้งานในวัน {day} คาบที่ {period} อยู่แล้ว",
-        )
-
-    class_busy = db.query(models.TimetableSlot).filter(
-        models.TimetableSlot.day == day,
-        models.TimetableSlot.period == period,
-        models.TimetableSlot.class_group_id == class_group_id,
-    ).first()
-    if class_busy:
-        raise HTTPException(
-            status_code=400,
-            detail=f"ระดับชั้น ID {class_group_id} มีเรียนวิชาอื่นในวัน {day} คาบที่ {period} อยู่แล้ว",
-        )
+    for slot in candidates:
+        if slot.teacher_id == teacher_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"ครู ID {teacher_id} มีสอนในวัน {day} คาบที่ {period} อยู่แล้ว",
+            )
+    for slot in candidates:
+        if slot.room_id == room_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"ห้องเรียน ID {room_id} ถูกใช้งานในวัน {day} คาบที่ {period} อยู่แล้ว",
+            )
+    for slot in candidates:
+        if slot.class_group_id == class_group_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"ระดับชั้น ID {class_group_id} มีเรียนวิชาอื่นในวัน {day} คาบที่ {period} อยู่แล้ว",
+            )
 
 
 # ----------------------------------------------------
@@ -473,7 +470,15 @@ def create_timetable_slot(
 
     return {
         "message": f"สร้างคาบเรียนสำเร็จโดย {current_user.username}",
-        "data": TimetableSlotResponse.model_validate(new_slot),
+        "data": {
+            "id": new_slot.id,
+            "day": new_slot.day,
+            "period": new_slot.period,
+            "teacher_id": new_slot.teacher_id,
+            "subject_id": new_slot.subject_id,
+            "room_id": new_slot.room_id,
+            "class_group_id": new_slot.class_group_id,
+        },
     }
 
 
